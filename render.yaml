@@ -1,0 +1,42 @@
+# Render Blueprint — defines both services in one file.
+# Deploy: push this to your repo root, then in Render Dashboard ->
+# New -> Blueprint -> connect your repo. Render reads this automatically.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ---------- BACKEND (Node API) ----------
+  - type: web
+    name: myapp-backend          # <- rename as you like; it sets the onrender.com subdomain
+    runtime: node
+    plan: starter                 # "starter" ($7/mo) required if you attach the disk below.
+                                   # Change to "free" if you drop the disk (see note below).
+    buildCommand: npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGIN
+        value: https://myapp-frontend.onrender.com   # <- update after first deploy, see README
+
+    # --- Persistent disk for the SQLite file ---
+    # Without this, server/data/swollen-teams.db is wiped on every deploy/restart.
+    # Requires a paid plan (not available on "free"). Remove this whole block
+    # if you're OK with the DB resetting on each deploy (e.g. it's seeded fresh).
+    disk:
+      name: sqlite-data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1
+
+  # ---------- FRONTEND (Vite static site) ----------
+  - type: web
+    name: myapp-frontend
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite               # needed so client-side routing (React Router etc.) works
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://myapp-backend.onrender.com   # <- update after first deploy, see README
