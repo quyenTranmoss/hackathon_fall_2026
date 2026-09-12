@@ -8,8 +8,7 @@ services:
   - type: web
     name: myapp-backend          # <- rename as you like; it sets the onrender.com subdomain
     runtime: node
-    plan: starter                 # "starter" ($7/mo) required if you attach the disk below.
-                                   # Change to "free" if you drop the disk (see note below).
+    plan: free                    # free tier: no persistent disk, spins down after 15 min idle
     buildCommand: npm install
     startCommand: node server/index.js
     envVars:
@@ -18,14 +17,10 @@ services:
       - key: ALLOWED_ORIGIN
         value: https://myapp-frontend.onrender.com   # <- update after first deploy, see README
 
-    # --- Persistent disk for the SQLite file ---
-    # Without this, server/data/swollen-teams.db is wiped on every deploy/restart.
-    # Requires a paid plan (not available on "free"). Remove this whole block
-    # if you're OK with the DB resetting on each deploy (e.g. it's seeded fresh).
-    disk:
-      name: sqlite-data
-      mountPath: /opt/render/project/src/server/data
-      sizeGB: 1
+    # NOTE: no persistent disk on the free plan. server/data/swollen-teams.db
+    # will reset to whatever seed.js/reset.js produce on every redeploy and
+    # every time the free instance is rebuilt. If you outgrow this, add a
+    # `disk:` block here and switch plan to "starter" ($7/mo + $0.25/GB/mo).
 
   # ---------- FRONTEND (Vite static site) ----------
   - type: web
