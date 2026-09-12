@@ -1,3 +1,5 @@
+import { calculateDimensionScore, createTraitProfile } from './swellTraitTaxonomy';
+
 export const profile = {
   name: 'Patrick McDonald',
   initials: 'PM',
@@ -207,7 +209,7 @@ export function generateInitialSwellProfile(profileData, responses) {
     detail: `Build on your ${dimension.name.toLowerCase()} through deliberate workplace practice.`,
     progress: Math.max(35, dimension.score - 18), color: ['pink', 'violet', 'amber', 'teal'][index],
   }));
-  return {
+  const swellProfile = {
     profile, responses, traits: generatedTraits, workplaceDimensions: dimensionResults, strengths, growthAreas,
     archetypeMatches: archetypeMatches.map(({ name, matchScore }) => ({ name, matchScore })),
     collaborationSnapshot: deriveCollaborationSnapshot(scoreById, rankedDimensions),
@@ -215,6 +217,30 @@ export function generateInitialSwellProfile(profileData, responses) {
       ? ['Benefits from context before decisions', 'Values time to prepare a clear point of view', 'Responds well to explicit ownership']
       : ['Shares context early', 'Adapts communication to the audience', 'Responds well to frequent alignment'],
     goals,
+    communicationTrend: [{ week: 'Week 1', value: Math.max(50, communicationScore - 9) }, { week: 'Week 4', value: Math.max(54, communicationScore - 5) }, { week: 'Week 8', value: communicationScore }],
+  };
+  return { ...swellProfile, traitProfile: createTraitProfile(swellProfile) };
+}
+
+export function recalculateSwellProfileFromTraits(swellProfile, traitProfile) {
+  const workplaceDimensions = swellProfile.workplaceDimensions.map((dimension) => {
+    const detailed = traitProfile.find((item) => item.id === dimension.id);
+    return detailed ? { ...dimension, score: calculateDimensionScore(detailed.traits) } : dimension;
+  });
+  const scoreById = Object.fromEntries(workplaceDimensions.map(({ id, score }) => [id, score]));
+  const generatedTraits = Object.entries(traitToDimension).map(([name, dimensionId]) => ({ name, score: scoreById[dimensionId] ?? 70, ...traitDetails[name] }));
+  const rankedDimensions = [...workplaceDimensions].sort((left, right) => right.score - left.score);
+  const growthDimensions = [...workplaceDimensions].sort((left, right) => left.score - right.score);
+  const [bestMatch, secondMatch] = rankArchetypes(scoreById);
+  const confidence = Math.max(61, Math.min(93, Math.round(65 + ((bestMatch.matchScore - secondMatch.matchScore) * 1.25))));
+  const profile = { ...swellProfile.profile, archetype: bestMatch.name, personality: deriveMbti(scoreById), confidence, labels: rankedDimensions.slice(0, 3).map((dimension) => descriptorByDimension[dimension.id]), description: bestMatch.description };
+  const communicationScore = generatedTraits.find((trait) => trait.name === 'Communication')?.score ?? 70;
+  return {
+    ...swellProfile, profile, traitProfile, workplaceDimensions, traits: generatedTraits,
+    strengths: rankedDimensions.slice(0, 3).map((dimension) => strengthByDimension[dimension.id]),
+    growthAreas: growthDimensions.slice(0, 3).map((dimension) => growthByDimension[dimension.id]),
+    collaborationSnapshot: deriveCollaborationSnapshot(scoreById, rankedDimensions),
+    communicationPreferences: communicationScore < 70 ? ['Benefits from context before decisions', 'Values time to prepare a clear point of view', 'Responds well to explicit ownership'] : ['Shares context early', 'Adapts communication to the audience', 'Responds well to frequent alignment'],
     communicationTrend: [{ week: 'Week 1', value: Math.max(50, communicationScore - 9) }, { week: 'Week 4', value: Math.max(54, communicationScore - 5) }, { week: 'Week 8', value: communicationScore }],
   };
 }
