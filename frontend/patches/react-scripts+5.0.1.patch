@@ -1,0 +1,51 @@
+diff --git a/node_modules/react-scripts/config/webpack.config.js b/node_modules/react-scripts/config/webpack.config.js
+index e465d8e..1cb1608 100644
+--- a/node_modules/react-scripts/config/webpack.config.js
++++ b/node_modules/react-scripts/config/webpack.config.js
+@@ -23,15 +23,25 @@ const InterpolateHtmlPlugin = require('react-dev-utils/InterpolateHtmlPlugin');
+ const WorkboxWebpackPlugin = require('workbox-webpack-plugin');
+ const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
+ const getCSSModuleLocalIdent = require('react-dev-utils/getCSSModuleLocalIdent');
+-const ESLintPlugin = require('eslint-webpack-plugin');
++let ESLintPlugin = null;
++try {
++  ESLintPlugin = require('eslint-webpack-plugin');
++} catch (e) {
++  console.warn('[patch] Skipping ESLintPlugin: failed to load (' + e.message + ')');
++}
+ const paths = require('./paths');
+ const modules = require('./modules');
+ const getClientEnvironment = require('./env');
+ const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
+-const ForkTsCheckerWebpackPlugin =
+-  process.env.TSC_COMPILE_ON_ERROR === 'true'
+-    ? require('react-dev-utils/ForkTsCheckerWarningWebpackPlugin')
+-    : require('react-dev-utils/ForkTsCheckerWebpackPlugin');
++let ForkTsCheckerWebpackPlugin = null;
++try {
++  ForkTsCheckerWebpackPlugin =
++    process.env.TSC_COMPILE_ON_ERROR === 'true'
++      ? require('react-dev-utils/ForkTsCheckerWarningWebpackPlugin')
++      : require('react-dev-utils/ForkTsCheckerWebpackPlugin');
++} catch (e) {
++  console.warn('[patch] Skipping ForkTsCheckerWebpackPlugin: failed to load (' + e.message + ')');
++}
+ const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
+ // @remove-on-eject-begin
+ const getCacheIdentifier = require('react-dev-utils/getCacheIdentifier');
+@@ -717,6 +727,7 @@ module.exports = function (webpackEnv) {
+         }),
+       // TypeScript type checking
+       useTypeScript &&
++        ForkTsCheckerWebpackPlugin &&
+         new ForkTsCheckerWebpackPlugin({
+           async: isEnvDevelopment,
+           typescript: {
+@@ -764,6 +775,7 @@ module.exports = function (webpackEnv) {
+           },
+         }),
+       !disableESLintPlugin &&
++        ESLintPlugin &&
+         new ESLintPlugin({
+           // Plugin options
+           extensions: ['js', 'mjs', 'jsx', 'ts', 'tsx'],
