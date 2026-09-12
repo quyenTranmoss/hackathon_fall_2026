@@ -1,0 +1,40 @@
+{
+  "summary": "First-finish smoke test of Swell Teams. Auth (signup/login/me/duplicate/wrong-password), quiz questions endpoint, users listing, DM creation, message retrieval, Swell AI chat (GPT-5.6-terra) + history persistence, and users/me PUT all work. Frontend login + sidebar nav (Activity/Chat/Swell/Calls/Files/People/Profile) render correctly; Chat opens DM with Bob, Swell page returns AI response, People and Profile pages load, profile shows ENFJ + AI bio + updated bio 'Test bio T1'. ONE HIGH-priority backend bug: POST /api/messages returns HTTP 500 due to Mongo ObjectId serialization, though the message IS persisted (visible in transcript and GET messages). Frontend surfaces a red 'Failed to send' toast on every send.",
+  "tested_scope": ["backend", "frontend", "auth", "integration"],
+  "passed": [
+    "POST /api/auth/signup creates user, returns token+user; duplicate email -> 400",
+    "POST /api/auth/login valid -> 200 token; wrong password -> 401",
+    "GET /api/auth/me with Bearer token -> current user (ENFJ)",
+    "GET /api/quiz/questions -> 12 questions (wrapped as {questions:[...]})",
+    "GET /api/users -> excludes self (Alice sees only Bob)",
+    "POST /api/conversations kind=dm creates DM (returns id + both participants)",
+    "GET /api/conversations/{cid}/messages returns persisted message",
+    "POST /api/swell/chat (field name is 'text') -> AI answer referencing roster (Alice ENFJ, Bob unknown)",
+    "GET /api/swell/history persists user+swell turns",
+    "PUT /api/users/me updates name/bio and persists",
+    "Frontend /login -> lands on /app/chat; sidebar shows all 7 nav links",
+    "Chat: user list renders, clicking Bob opens DM, message visible in transcript",
+    "Swell page: prompt sends and AI response displayed",
+    "People page loads with search input; Profile page shows ENFJ + AI bio + communication style + updated bio"
+  ],
+  "failed": [
+    {
+      "area": "Backend POST /api/messages",
+      "issue": "Returns HTTP 500 (ValueError: 'ObjectId' object is not iterable in fastapi jsonable_encoder). Message is actually written to Mongo (GET messages returns it), but the response fails serialization. Frontend consequently shows a red 'Failed to send' toast on every send in ChatPage.",
+      "evidence": "curl POST /api/messages -> 'Internal Server Error' HTTP 500; backend log: 'ValueError: [TypeError(\"ObjectId object is not iterable\")...]' in fastapi/encoders.py. GET /api/conversations/{cid}/messages afterwards includes the new message. UI screenshot shows red 'Failed to send' toast while 'hello bob' message bubble is visible.",
+      "priority": "HIGH"
+    },
+    {
+      "area": "Schema mismatch vs review spec",
+      "issue": "Review spec said /api/swell/chat takes 'question' field but backend requires 'text' (422 on 'question'). Frontend already uses 'text' so functionally OK — flagging for documentation only.",
+      "evidence": "POST /api/swell/chat {question:...} -> 422 missing 'text'; with {text:...} -> 200",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "Fix POST /api/messages 500: exclude Mongo _id / ObjectId from returned document (e.g., project it out or convert). The message insert works; only the response serialization fails. This will remove the 'Failed to send' toast in ChatPage even though data was saved."
+  ],
+  "success_rate": {"backend": "91% (10/11 endpoints; messages POST fails serialization)", "frontend": "100% of smoke-tested flows (login, sidebar, chat open, swell, people, profile)"},
+  "retest_needed": true,
+  "full_testing_deferred": true
+}

@@ -1,0 +1,123 @@
+{
+  "theme": "dark_mode_first",
+  "typography": {
+    "headings": {
+      "family": "Outfit",
+      "import": "@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');",
+      "rules": "Never center by default. Use tracking-tight for sizes > 32px. No Inter/Roboto. Avoid Space Grotesk."
+    },
+    "body": {
+      "family": "IBM Plex Sans",
+      "import": "@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');",
+      "rules": "Left-align dense text. Loose leading (leading-relaxed)."
+    },
+    "mono": {
+      "family": "JetBrains Mono",
+      "import": "@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');"
+    }
+  },
+  "colors": {
+    "archetype": "Swiss & High-Contrast mixed with The Performance Pro",
+    "background": "#09090B", 
+    "surface": "#121214",
+    "surface_hover": "#1C1C1F",
+    "border": "#27272A",
+    "primary": "#0055FF", 
+    "primary_hover": "#0044CC",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#A1A1AA",
+    "ai_swell_accent": "#FF5D01",
+    "ai_swell_gradient": "bg-gradient-to-br from-[#FF5D01] to-[#FF9000]",
+    "status": {
+      "online": "#10B981",
+      "away": "#F59E0B",
+      "offline": "#52525B"
+    },
+    "rules": "No purple. No teal. Tinted greys only (cool undertone). Explicit hover text colors required. Minimum 4.5:1 contrast for small text. DO NOT use complete transparent backgrounds for overlays."
+  },
+  "visual_enhancers": {
+    "glassmorphism": "Used for sticky chat headers and floating menus. bg-background/80 backdrop-blur-xl border-b border-white/5.",
+    "borders": "1px solid borders (border-border). No soft shadows on cards, use crisp borders.",
+    "radius": "Subtle roundness. sm: 4px, md: 6px, lg: 8px (rounded-lg max). Pill shape for primary actions.",
+    "animations": "Micro-interactions on hover. Staggered list entrances for chat lists. Framer motion for modal entrances.",
+    "ai_styling": "Swell AI chat bubbles should have a subtle 1px border of ai_swell_accent and a distinct background (surface_hover with ai_swell_accent/5). No generic AI emojis."
+  },
+  "layouts": {
+    "general": "Dense, full-height (h-screen) application layout. Avoid Bootstrap grids.",
+    "sidebar": "Tight spacing (w-16 or w-64). Fixed left. Grid hierarchy.",
+    "chat_area": "Stateful transcript view. Messages group consecutive turns. Stick to bottom.",
+    "user_profile": "Bento grid layout for personality insights. Asymmetric spans.",
+    "forms": "Multi-step quiz using Shadcn Forms with progress bar."
+  },
+  "components": {
+    "libraries_to_install": [
+      "yarn add @phosphor-icons/react",
+      "yarn add framer-motion",
+      "yarn add clsx tailwind-merge"
+    ],
+    "shadcn_usage": "Use Shadcn for Dropdowns, Dialogs, Forms, Inputs, Avatar, ScrollArea, Tabs, Progress. Customize borders to be sharp (rounded-md max).",
+    "custom": "MessageBubble, AIResponseStream, PersonalityBadge (Bento box).",
+    "icons": "Phosphor Icons for a crisp, high-end technical feel (Duotone for nav, Regular for actions)."
+  },
+  "features_spec": {
+    "auth": "Split screen. Left: Modern form. Right: Office teamwork image with heavy black/60 overlay and brand text.",
+    "chat": "Left sidebar (teams/calls/files), middle chat list, right main chat window. Message bubbles with timestamps on hover.",
+    "swell_ai": "Distinct AI persona. Quick action prompts in a horizontal scroll above input. Use AI avatar.",
+    "quiz": "16-personalities style. Progress bar on top. Questions centered. End with bento-style results.",
+    "video_call": "Placeholder screen with large avatars in a CSS Grid (1x2 or 2x2), floating controls at bottom."
+  },
+  "image_urls": {
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4OTE3NTI0NXww&ixlib=rb-4.1.0&q=85", 
+        "category": "avatar", 
+        "description": "Male user avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4OTE3NTI0NXww&ixlib=rb-4.1.0&q=85", 
+        "category": "avatar", 
+        "description": "Female user avatar"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4OTE3NTI0NXww&ixlib=rb-4.1.0&q=85", 
+        "category": "avatar", 
+        "description": "Male user avatar 2"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1609436132311-e4b0c9370469?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDB8fHx8MTc4OTE3NTI0NXww&ixlib=rb-4.1.0&q=85", 
+        "category": "avatar", 
+        "description": "Female user avatar 2"
+      }
+    ],
+    "ai_branding": [
+      {
+        "url": "https://images.unsplash.com/photo-1759583545970-0106ff47353f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGZsdWlkJTIwM2QlMjBzaGFwZXxlbnwwfHx8fDE3ODkxNzUyNDV8MA&ixlib=rb-4.1.0&q=85", 
+        "category": "ai_background", 
+        "description": "Iridescent fluid shape for AI empty state"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1676676701269-65de47175adf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NzR8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGZsdWlkJTIwM2QlMjBzaGFwZXxlbnwwfHx8fDE3ODkxNzUyNDV8MA&ixlib=rb-4.1.0&q=85", 
+        "category": "ai_avatar", 
+        "description": "Blue fluid abstract shape for Swell AI avatar"
+      }
+    ],
+    "backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1690378820474-b468b8ee64d3?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwyfHxvZmZpY2UlMjB0ZWFtd29yayUyMG1vZGVybnxlbnwwfHx8fDE3ODkxNzUyNDV8MA&ixlib=rb-4.1.0&q=85", 
+        "category": "auth_background", 
+        "description": "Modern office teamwork for auth side screen"
+      }
+    ]
+  },
+  "universal_guidelines_for_main_agent": [
+    "Create depth through layered design elements with z-index hierarchy. No generic centered layouts.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for sticky navs/headers.",
+    "Use modern button styles (sharp rounded-md) with distinct interaction animations.",
+    "Do NOT apply universal transitions (transition: all). Target specific properties.",
+    "Never use AI assistant emojis (🤖🧠💭). Use abstract geometric icons or the provided AI avatar image.",
+    "Every interactive element MUST have a data-testid attribute.",
+    "Use Sonner for toasts.",
+    "Do NOT center align the app container. No .App { text-align: center; }.",
+    "Use pure HTML + Tailwind for complex layout grids (Bento), but Shadcn for interactive logic (Dialogs, Select, Forms)."
+  ]
+}

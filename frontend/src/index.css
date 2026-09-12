@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: #09090B;
+    color: #FFFFFF;
+}
+
+h1, h2, h3, h4, h5, h6, .heading {
+    font-family: 'Outfit', system-ui, sans-serif;
+    letter-spacing: -0.01em;
+}
+
+code, .mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+@layer base {
+    :root {
+        --background: 240 6% 6%;
+        --foreground: 0 0% 100%;
+        --card: 240 6% 8%;
+        --card-foreground: 0 0% 100%;
+        --popover: 240 6% 8%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 220 100% 50%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 240 5% 12%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 5% 12%;
+        --muted-foreground: 240 4% 63%;
+        --accent: 240 5% 15%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 4% 15%;
+        --input: 240 4% 15%;
+        --ring: 220 100% 50%;
+        --radius: 0.5rem;
+    }
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #09090B; }
+::-webkit-scrollbar-thumb { background: #27272A; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3F3F46; }
+
+/* Utility: swell gradient */
+.swell-gradient {
+    background: linear-gradient(135deg, #FF5D01 0%, #FF9000 100%);
+}
+.swell-border {
+    border-color: rgba(255, 93, 1, 0.35);
+}
+.swell-tint {
+    background: rgba(255, 93, 1, 0.06);
+}
+
+.glass {
+    background: rgba(9, 9, 11, 0.72);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+/* Animated dot for online status */
+@keyframes pulseDot {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+    50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+}
+.online-dot { animation: pulseDot 2s infinite; }
+
+/* Fade-in-up for messages */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.22s ease-out both; }
+
+/* Staggered list */
+.stagger-item { animation: fadeInUp 0.3s ease-out both; }
+
+/* Removed default create-react-app centering */
+.App { text-align: left; }
