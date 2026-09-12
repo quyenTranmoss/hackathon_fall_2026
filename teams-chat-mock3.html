@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chat Mock — Teams-style demo</title>
+<style>
+  :root{
+    --purple: #5b5fc7;
+    --purple-dark: #464775;
+    --purple-darker: #33344a;
+    --bg-app: #f5f5f5;
+    --bg-panel: #faf9f8;
+    --bg-rail: #f0eef8;
+    --border: #e1dfdd;
+    --text: #242424;
+    --text-dim: #616161;
+    --text-faint: #8a8886;
+    --green: #6bb700;
+    --bubble-me: #e8ebfa;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-app);
+    color: var(--text);
+    height:100vh;
+    overflow:hidden;
+  }
+  .shell{ display:flex; flex-direction:column; height:100vh; }
+
+  /* Top bar */
+  .topbar{
+    height:48px; flex-shrink:0; background:white; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; padding:0 16px; gap:16px;
+  }
+  .topbar-search{
+    flex:1; max-width:560px; background:#f3f2f1; border-radius:4px;
+    padding:7px 12px; color:var(--text-faint); font-size:13px;
+  }
+  .topbar-spacer{ flex:1; }
+  .topbar-avatar{
+    width:32px; height:32px; border-radius:50%; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    background:#7a4fa0; color:white; font-weight:600; font-size:13px;
+    flex-shrink:0;
+  }
+
+  .app{ display:flex; flex:1; min-height:0; }
+
+  /* Rail */
+  .rail{
+    width:76px;
+    background: var(--bg-rail);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top:12px;
+    border-right:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .rail-item{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+    padding:10px 0;
+    color:var(--text-dim);
+    font-size:11px;
+    cursor:pointer;
+    position:relative;
+  }
+  .rail-item.active{ color: var(--purple-dark); font-weight:600; }
+  .rail-item.active::before{
+    content:"";
+    position:absolute; left:0; top:8px; bottom:8px; width:3px;
+    background:var(--purple-dark); border-radius:0 2px 2px 0;
+  }
+  .rail-item .icon{ font-size:20px; }
+  .badge{
+    position:absolute; top:4px; left:38px;
+    background:#c4314b; color:white; font-size:10px;
+    border-radius:8px; padding:1px 5px; font-weight:600;
+  }
+
+  /* Chat list */
+  .chatlist{
+    width:320px;
+    background: var(--bg-panel);
+    border-right:1px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    flex-shrink:0;
+  }
+  .chatlist-header{
+    padding:16px 16px 8px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .chatlist-header h1{ font-size:20px; margin:0; font-weight:600; }
+  .new-chat-btn{
+    border:none; background:transparent; font-size:18px; cursor:pointer;
+    color:var(--text-dim); width:32px; height:32px; border-radius:4px;
+  }
+  .new-chat-btn:hover{ background:#e8e8e8; }
+  .tabs{
+    display:flex; gap:8px; padding:4px 16px 12px 16px; font-size:13px;
+  }
+  .tab{
+    padding:5px 12px; border-radius:14px; color:var(--text-dim); cursor:pointer;
+  }
+  .tab.active{ background:#e0e0f5; color:var(--purple-dark); font-weight:600; }
+
+  .thread-list{ overflow-y:auto; flex:1; }
+  .thread{
+    display:flex; gap:10px; padding:8px 16px; cursor:pointer;
+    border-left:3px solid transparent;
+  }
+  .thread:hover{ background:#f0f0f0; }
+  .thread.selected{ background:#e8e8f5; border-left-color: var(--purple-dark); }
+  .avatar{
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:600; color:white; flex-shrink:0;
+    position:relative;
+    background-size:cover; background-position:center;
+  }
+  .avatar .status{
+    position:absolute; bottom:-1px; right:-1px;
+    width:11px; height:11px; border-radius:50%;
+    border:2px solid var(--bg-panel);
+  }
+  .status.online{ background:var(--green); }
+  .status.offline{ background:#8a8886; }
+  .thread-info{ flex:1; min-width:0; }
+  .thread-top{ display:flex; justify-content:space-between; align-items:baseline; }
+  .thread-name{ font-size:14px; font-weight:600; }
+  .thread-time{ font-size:11px; color:var(--text-faint); }
+  .thread-preview{
+    font-size:12.5px; color:var(--text-dim);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .thread-preview.unread{ color:var(--text); font-weight:600; }
+
+  /* Conversation pane */
+  .conversation{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    background:white;
+    min-width:0;
+  }
+  .conv-header{
+    height:56px;
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px;
+    padding:0 16px;
+    flex-shrink:0;
+  }
+  .conv-header .avatar{ cursor:pointer; }
+  .conv-title{
+    font-weight:600; font-size:15px; cursor:pointer;
+  }
+  .conv-title:hover{ text-decoration:underline; }
+  .conv-sub{ font-size:11.5px; color:var(--text-faint); }
+  .conv-header-actions{
+    margin-left:auto; display:flex; gap:16px; color:var(--text-dim); font-size:17px;
+  }
+
+  .messages{
+    flex:1; overflow-y:auto; padding:20px 24px; display:flex; flex-direction:column; gap:2px;
+  }
+  .day-divider{
+    text-align:center; color:var(--text-faint); font-size:12px; margin:12px 0;
+  }
+  .msg-row{ display:flex; gap:10px; margin-top:14px; max-width:70%; }
+  .msg-row.me{ align-self:flex-end; flex-direction:row-reverse; }
+  .msg-row .avatar{ margin-top:2px; cursor:pointer; }
+  .msg-body{ display:flex; flex-direction:column; }
+  .msg-row.me .msg-body{ align-items:flex-end; }
+  .msg-meta{ font-size:12px; margin-bottom:2px; }
+  .msg-meta .name{ font-weight:600; cursor:pointer; }
+  .msg-meta .name:hover{ text-decoration:underline; }
+  .msg-meta .time{ color:var(--text-faint); margin-left:6px; }
+  .bubble{
+    background:#f0f0f0; padding:8px 12px; border-radius:4px 12px 12px 12px;
+    font-size:14px; line-height:1.45; white-space:pre-line;
+  }
+  .msg-row.me .bubble{
+    background:var(--bubble-me); border-radius:12px 4px 12px 12px;
+  }
+  .typing-indicator{
+    font-size:12.5px; color:var(--text-faint); padding:0 24px 8px 24px; height:18px;
+  }
+
+  .composer{
+    border-top:1px solid var(--border);
+    padding:8px 16px 14px 16px;
+    flex-shrink:0;
+  }
+  .composer-toolbar{
+    display:flex; gap:14px; color:var(--text-dim); font-size:16px; padding:6px 4px;
+  }
+  .composer-input-wrap{
+    border:1px solid var(--border); border-radius:6px; padding:8px 10px;
+    min-height:20px;
+  }
+  .composer-input{
+    border:none; outline:none; width:100%; font-size:14px; font-family:inherit;
+    resize:none; background:transparent;
+  }
+  .composer-bottom{ display:flex; justify-content:flex-end; padding-top:6px; }
+  .send-btn{
+    background:var(--purple-dark); color:white; border:none; border-radius:4px;
+    padding:6px 10px; font-size:16px; cursor:pointer;
+  }
+
+  /* Overlay / profile card (shared) */
+  .overlay{
+    position:fixed; inset:0; background:rgba(0,0,0,0.35);
+    display:none; align-items:center; justify-content:center; z-index:50;
+  }
+  .overlay.show{ display:flex; }
+  .profile-card{
+    width:560px; max-width:92vw; max-height:88vh; overflow-y:auto;
+    background:#242424; color:white; border-radius:8px;
+    padding:28px 32px; position:relative;
+    box-shadow:0 12px 40px rgba(0,0,0,0.4);
+  }
+  .profile-close{
+    position:absolute; top:16px; right:16px; background:none; border:none;
+    color:#c8c6c4; font-size:20px; cursor:pointer;
+  }
+  .profile-top{ display:flex; gap:20px; align-items:flex-start; }
+  .profile-avatar-lg{
+    width:96px; height:96px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:34px; font-weight:600; color:#2b2b1f; background:#d7d2a3;
+    position:relative; flex-shrink:0;
+    background-size:cover; background-position:center;
+  }
+  .profile-avatar-lg .status-dot{
+    position:absolute; bottom:2px; right:2px; width:20px; height:20px;
+    border-radius:50%; background:#8a8886; border:3px solid #242424;
+  }
+  .profile-name{ font-size:26px; font-weight:600; margin:0 0 2px 0; }
+  .profile-role{ color:#c8c6c4; font-size:14px; margin-bottom:12px; }
+  .profile-icon-row{ display:flex; gap:14px; color:#c8c6c4; font-size:17px; }
+  .profile-icon-row span{ cursor:pointer; }
+  .profile-tabs{
+    display:flex; gap:22px; margin-top:20px; border-bottom:1px solid #3b3b3b;
+    font-size:14px; flex-wrap:wrap;
+  }
+  .profile-tabs .ptab{ padding-bottom:10px; color:#c8c6c4; cursor:pointer; }
+  .profile-tabs .ptab.active{ color:#a6a6f5; border-bottom:2px solid #a6a6f5; }
+
+  .ptab-content{ display:none; }
+  .ptab-content.active{ display:block; }
+
+  .quick-msg{
+    margin-top:20px; display:flex; align-items:center;
+    background:#2f2f2f; border-radius:6px; padding:10px 14px;
+  }
+  .quick-msg input{
+    flex:1; background:none; border:none; outline:none; color:white; font-size:14px;
+  }
+  .quick-msg input::placeholder{ color:#8a8886; }
+  .quick-msg button{ background:none; border:none; color:#a6a6f5; font-size:16px; cursor:pointer; }
+
+  .status-box{
+    margin-top:16px; border:1px solid #3b3b3b; border-radius:6px; padding:12px 14px;
+  }
+  .status-box .line{ display:flex; gap:10px; align-items:center; font-size:14px; }
+  .status-box .line + .line{ margin-top:10px; padding-top:10px; border-top:1px solid #333; }
+  .dot-x{
+    width:16px; height:16px; border-radius:50%; border:2px solid #8a8886;
+    display:flex; align-items:center; justify-content:center; font-size:10px; color:#8a8886;
+  }
+
+  .section-title{ font-weight:600; margin:22px 0 12px 0; font-size:15px; }
+  .contact-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .contact-grid .label{ font-size:12px; color:#8a8886; margin-bottom:2px; }
+  .contact-grid .value{ font-size:14px; color:#a6a6f5; }
+  .contact-grid .value.plain{ color:white; }
+
+  /* Quiz (Swell tab) */
+  .quiz-intro{ color:#c8c6c4; font-size:13.5px; margin-bottom:18px; line-height:1.5; }
+  .quiz-question{ margin-bottom:20px; }
+  .quiz-question .q-text{ font-weight:600; margin-bottom:10px; font-size:14.5px; }
+  .quiz-option{
+    display:flex; gap:10px; align-items:flex-start; padding:10px 12px;
+    border:1px solid #3b3b3b; border-radius:6px; margin-bottom:8px;
+    cursor:pointer; font-size:13.5px; line-height:1.4;
+  }
+  .quiz-option:hover{ border-color:#5c5c5c; }
+  .quiz-option.selected{ border-color:#a6a6f5; background:#2f2f45; }
+  .quiz-option input{ margin-top:2px; }
+  .quiz-save-btn{
+    background:var(--purple-dark); color:white; border:none; padding:9px 18px;
+    border-radius:4px; cursor:pointer; font-size:14px; margin-top:4px;
+  }
+  .quiz-save-btn:disabled{ background:#565565; cursor:default; opacity:.6; }
+  .quiz-result{
+    margin-top:22px; padding:18px 20px; border:1px solid #3b3b3b;
+    border-radius:8px; background:#2f2f2f;
+  }
+  .quiz-result .type-code{ font-size:24px; font-weight:700; color:#a6a6f5; }
+  .quiz-result .type-name{ font-size:16px; font-weight:600; margin-bottom:10px; color:white; }
+  .quiz-result .type-blurb{ font-size:13.5px; color:#c8c6c4; line-height:1.5; }
+  .quiz-retake{
+    background:none; border:1px solid #565565; color:#c8c6c4; padding:6px 14px;
+    border-radius:4px; cursor:pointer; font-size:13px;
+  }
+  .goal-set-btn{
+    background:var(--purple-dark); border:none; color:white; padding:6px 14px;
+    border-radius:4px; cursor:pointer; font-size:13px;
+  }
+  .btn-row{ display:flex; gap:10px; margin-top:14px; }
+  .goal-input-row{ display:flex; gap:8px; margin-top:16px; }
+  .goal-input-row input{
+    flex:1; background:#2f2f2f; border:1px solid #3b3b3b; border-radius:6px;
+    padding:9px 11px; color:white; font-size:13.5px; outline:none;
+  }
+  .goal-input-row button{
+    background:var(--purple-dark); border:none; color:white; padding:8px 16px;
+    border-radius:4px; cursor:pointer; font-size:13px;
+  }
+  .goal-edit-link{
+    color:#a6a6f5; font-size:12.5px; cursor:pointer; margin-bottom:10px; display:inline-block;
+  }
+  .goal-breakdown{
+    margin-top:16px; padding:16px 18px; border:1px solid #3b3b3b; border-radius:8px;
+    background:#2f2f2f; font-size:13.5px; line-height:1.55; color:#e8e8e8; white-space:pre-line;
+  }
+  .goal-chat-messages{
+    display:flex; flex-direction:column; gap:10px; max-height:220px;
+    overflow-y:auto; padding:14px 4px 4px 4px;
+  }
+  .goal-chat-msg{
+    font-size:13px; padding:8px 11px; border-radius:6px; max-width:88%; line-height:1.45;
+  }
+  .goal-chat-msg.user{ align-self:flex-end; background:#3d3d6b; }
+  .goal-chat-msg.bot{ align-self:flex-start; background:#333333; }
+  .goal-chat-input-row{ display:flex; gap:8px; margin-top:10px; }
+  .goal-chat-input-row input{
+    flex:1; background:#2f2f2f; border:1px solid #3b3b3b; border-radius:6px;
+    padding:8px 11px; color:white; font-size:13px; outline:none;
+  }
+  .goal-chat-input-row button{
+    background:var(--purple-dark); border:none; color:white; padding:8px 13px;
+    border-radius:4px; cursor:pointer; font-size:13px;
+  }
+
+  /* ---------- Calendar view ---------- */
+  .cal-sidebar{
+    width:320px; background:var(--bg-panel); color:var(--text); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; padding:20px 16px; overflow-y:auto; flex-shrink:0;
+  }
+  .cal-sidebar h1{ font-size:20px; font-weight:600; margin:0 0 18px 0; }
+  .cal-mini{ margin-bottom:18px; }
+  .cal-mini-header{ font-size:13.5px; font-weight:600; margin-bottom:10px; color:var(--text); }
+  .cal-mini-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; font-size:12px; }
+  .cal-mini-grid .dow{ color:var(--text-faint); margin-bottom:2px; }
+  .cal-mini-grid .day{ padding:5px 0; border-radius:50%; color:var(--text); }
+  .cal-mini-grid .day.dim{ color:#c8c6c4; }
+  .cal-mini-grid .day.in-week{ background:#e0e0f5; }
+  .cal-mini-grid .day.today{ background:var(--purple-dark); color:white; font-weight:700; }
+  .cal-add-link{ color:var(--purple-dark); font-size:13px; cursor:pointer; margin-bottom:18px; }
+  .cal-section-title{ font-size:13px; font-weight:600; margin-bottom:10px; color:var(--text); }
+  .cal-cal-item{ display:flex; align-items:center; gap:10px; font-size:13.5px; margin-bottom:8px; color:var(--text); }
+  .cal-cal-item input[type=checkbox]{ accent-color:var(--purple-dark); width:16px; height:16px; }
+  .cal-show-all{ color:var(--purple-dark); font-size:13px; cursor:pointer; margin-top:2px; }
+  .cal-swell-toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:22px; padding-top:16px; border-top:1px solid var(--border); font-size:13.5px; color:var(--text);
+  }
+  .cal-swell-toggle-row .label{ display:flex; align-items:center; gap:8px; }
+  .cal-swell-logo-mini{ width:18px; height:18px; border-radius:4px; background-size:cover; background-position:center; flex-shrink:0; }
+  .toggle-switch{ position:relative; width:36px; height:20px; background:#c8c6c4; border-radius:10px; cursor:pointer; transition:background .15s; flex-shrink:0; }
+  .toggle-switch.on{ background:var(--purple-dark); }
+  .toggle-switch .knob{ position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:white; transition:left .15s; }
+  .toggle-switch.on .knob{ left:18px; }
+
+  .cal-main{ flex:1; display:flex; flex-direction:column; background:white; color:var(--text); min-width:0; position:relative; }
+  .cal-toolbar{ display:flex; align-items:center; gap:16px; padding:14px 20px; border-bottom:1px solid var(--border); font-size:14px; flex-shrink:0; }
+  .cal-toolbar .today-btn{ display:flex; align-items:center; gap:6px; border:1px solid var(--border); padding:6px 12px; border-radius:4px; cursor:pointer; color:var(--text); }
+  .cal-toolbar .nav-arrow{ cursor:pointer; color:var(--text-dim); padding:4px; font-size:15px; }
+  .cal-toolbar .date-range{ font-weight:600; font-size:15px; cursor:pointer; }
+  .cal-toolbar .spacer{ flex:1; }
+  .cal-toolbar .view-dd{ border:1px solid var(--border); padding:6px 12px; border-radius:4px; cursor:pointer; }
+
+  .cal-grid-wrap{ flex:1; overflow-y:auto; position:relative; }
+  .cal-day-headers{
+    display:grid; grid-template-columns:60px repeat(7,1fr);
+    border-bottom:1px solid var(--border); position:sticky; top:0; background:white; z-index:2;
+  }
+  .cal-day-headers .dh{ padding:10px 8px; }
+  .cal-day-headers .dh .num{ font-size:22px; font-weight:300; color:var(--purple-dark); }
+  .cal-day-headers .dh.today .num{ color:var(--purple-dark); font-weight:700; }
+  .cal-day-headers .dh .dow{ font-size:12px; color:var(--text-faint); }
+
+  .cal-time-grid{ display:flex; }
+  .cal-time-labels{ width:60px; flex-shrink:0; }
+  .cal-hour-label{ font-size:11px; color:var(--text-faint); text-align:right; padding:2px 8px 0 0; box-sizing:border-box; border-top:1px dashed var(--border); }
+  .cal-hour-label:first-child{ border-top:none; }
+  .cal-days-grid{ flex:1; display:grid; grid-template-columns:repeat(7,1fr); }
+  .cal-day-col{
+    position:relative; border-left:1px solid var(--border); height:810px;
+    background-image:repeating-linear-gradient(to bottom, transparent, transparent 89px, var(--border) 89px, var(--border) 90px);
+  }
+  .cal-event{
+    position:absolute; left:4px; right:4px; background:#e8e8f8; border-left:3px solid var(--purple-dark);
+    border-radius:4px; padding:4px 8px; font-size:12.5px; color:var(--purple-darker); cursor:pointer; overflow:hidden;
+    display:flex; align-items:center; gap:6px; white-space:nowrap;
+  }
+  .cal-event.hidden{ display:none; }
+  .cal-event .icn{ flex-shrink:0; }
+  .cal-event .ev-title{ overflow:hidden; text-overflow:ellipsis; flex:1; }
+  .cal-event .attendee-badge{
+    background:var(--purple-dark); color:white; border-radius:8px; padding:0 6px;
+    font-size:10.5px; font-weight:600; flex-shrink:0; line-height:16px;
+  }
+
+  .cal-popup-close{ display:none; position:absolute; inset:0; z-index:9; }
+  .cal-popup-close.show{ display:block; }
+  .cal-popup{
+    display:none; position:absolute; width:320px; background:white; color:var(--text);
+    border-radius:8px; box-shadow:0 12px 30px rgba(0,0,0,.18); border-top:3px solid var(--purple-dark);
+    border:1px solid var(--border); border-top:3px solid var(--purple-dark);
+    z-index:10; padding:18px 20px;
+  }
+  .cal-popup.show{ display:block; }
+  .cal-popup-header{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
+  .cal-popup-title{ font-size:17px; font-weight:600; display:flex; gap:8px; align-items:center; color:var(--text); }
+  .cal-popup-expand{ color:var(--text-dim); cursor:pointer; font-size:15px; }
+  .cal-popup-row{ display:flex; gap:10px; font-size:13.5px; padding:9px 0; border-top:1px solid var(--border); color:var(--text); }
+  .cal-popup-row:first-of-type{ border-top:none; }
+  .cal-popup-row .ic{ width:16px; text-align:center; color:var(--text-faint); flex-shrink:0; }
+  .cal-popup-attendees .count{ font-weight:600; color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="topbar-search">🔍  Search</div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-avatar" onclick="openMyProfile()">QT</div>
+  </div>
+
+  <div class="app">
+    <!-- Left icon rail -->
+    <div class="rail">
+      <div class="rail-item"><div class="icon">🔔</div>Activity</div>
+      <div class="rail-item active" data-view="chat" style="position:relative;" onclick="selectRailView('chat')">
+        <div class="icon">💬</div>Chat
+        <div class="badge">2</div>
+      </div>
+      <div class="rail-item" data-view="calendar" onclick="selectRailView('calendar')"><div class="icon">📅</div>Calendar</div>
+      <div class="rail-item"><div class="icon">📞</div>Calls</div>
+      <div class="rail-item"><div class="icon">☁️</div>OneDrive</div>
+      <div class="rail-item"><div class="icon">⋯</div>Apps</div>
+    </div>
+
+    <!-- Chat view -->
+    <div class="view-container" id="view-chat" style="display:flex; flex:1; min-height:0;">
+      <!-- Chat list -->
+      <div class="chatlist">
+        <div class="chatlist-header">
+          <h1>Chat</h1>
+          <button class="new-chat-btn">✎</button>
+        </div>
+        <div class="tabs">
+          <div class="tab active">All</div>
+          <div class="tab">Unread</div>
+        </div>
+        <div class="thread-list" id="thread-list">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+      <!-- Conversation -->
+      <div class="conversation">
+        <div class="conv-header">
+          <div class="avatar" id="conv-avatar" onclick="openContactProfile()"></div>
+          <div>
+            <div class="conv-title" id="conv-title" onclick="openContactProfile()"></div>
+            <div class="conv-sub" id="conv-sub"></div>
+          </div>
+          <div class="conv-header-actions">
+            <span>📹</span><span>📞</span><span>ⓘ</span>
+          </div>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="typing-indicator" id="typing"></div>
+
+        <div class="composer">
+          <div class="composer-toolbar">
+            <span>😊</span><span>📎</span><span>GIF</span><span>Aa</span>
+          </div>
+          <div class="composer-input-wrap">
+            <textarea class="composer-input" id="composer-input" rows="1" placeholder="Type a message"></textarea>
+          </div>
+          <div class="composer-bottom">
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calendar view -->
+    <div class="view-container" id="view-calendar" style="display:none; flex:1; min-height:0;">
+      <!-- Calendar sidebar -->
+      <div class="cal-sidebar">
+        <h1>Calendar</h1>
+
+        <div class="cal-mini">
+          <div class="cal-mini-header">
+            <span>September 2026</span>
+          </div>
+          <div class="cal-mini-grid">
+            <div class="dow">S</div><div class="dow">M</div><div class="dow">T</div><div class="dow">W</div><div class="dow">T</div><div class="dow">F</div><div class="dow">S</div>
+            <div class="day dim">30</div><div class="day dim">31</div><div class="day">1</div><div class="day">2</div><div class="day">3</div><div class="day">4</div><div class="day">5</div>
+            <div class="day in-week">6</div><div class="day in-week">7</div><div class="day in-week">8</div><div class="day in-week">9</div><div class="day in-week">10</div><div class="day in-week">11</div><div class="day in-week today">12</div>
+            <div class="day">13</div><div class="day">14</div><div class="day">15</div><div class="day">16</div><div class="day">17</div><div class="day">18</div><div class="day">19</div>
+            <div class="day">20</div><div class="day">21</div><div class="day">22</div><div class="day">23</div><div class="day">24</div><div class="day">25</div><div class="day">26</div>
+            <div class="day">27</div><div class="day">28</div><div class="day">29</div><div class="day">30</div><div class="day dim">1</div><div class="day dim">2</div><div class="day dim">3</div>
+          </div>
+        </div>
+
+        <div class="cal-add-link">+ Add calendar</div>
+
+        <div class="cal-section-title">▾ My calendars</div>
+        <div class="cal-cal-item">
+          <input type="checkbox" checked>
+          <span>Calendar</span>
+        </div>
+        <div class="cal-show-all">Show all</div>
+
+        <div class="cal-swell-toggle-row">
+          <div class="label">
+            <div class="cal-swell-logo-mini" id="swell-mini-logo"></div>
+            <span>Swell event tracker</span>
+          </div>
+          <div class="toggle-switch on" id="swell-toggle" onclick="toggleSwellEvents()"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <!-- Calendar main -->
+      <div class="cal-main" id="cal-main">
+        <div class="cal-toolbar">
+          <div class="today-btn">📅 Today</div>
+          <div class="nav-arrow">‹</div>
+          <div class="nav-arrow">›</div>
+          <div class="date-range">September 6–12, 2026 ▾</div>
+          <div class="spacer"></div>
+          <div class="view-dd">Week ▾</div>
+        </div>
+
+        <div class="cal-grid-wrap">
+          <div class="cal-day-headers">
+            <div class="dh"></div>
+            <div class="dh"><div class="num">6</div><div class="dow">Sun</div></div>
+            <div class="dh"><div class="num">7</div><div class="dow">Mon</div></div>
+            <div class="dh"><div class="num">8</div><div class="dow">Tue</div></div>
+            <div class="dh"><div class="num">9</div><div class="dow">Wed</div></div>
+            <div class="dh"><div class="num">10</div><div class="dow">Thu</div></div>
+            <div class="dh"><div class="num">11</div><div class="dow">Fri</div></div>
+            <div class="dh today"><div class="num">12</div><div class="dow">Sat</div></div>
+          </div>
+
+          <div class="cal-time-grid">
+            <div class="cal-time-labels">
+              <div class="cal-hour-label" style="height:90px;">11 AM</div>
+              <div class="cal-hour-label" style="height:90px;">12 PM</div>
+              <div class="cal-hour-label" style="height:90px;">1 PM</div>
+              <div class="cal-hour-label" style="height:90px;">2 PM</div>
+              <div class="cal-hour-label" style="height:90px;">3 PM</div>
+              <div class="cal-hour-label" style="height:90px;">4 PM</div>
+              <div class="cal-hour-label" style="height:90px;">5 PM</div>
+              <div class="cal-hour-label" style="height:90px;">6 PM</div>
+              <div class="cal-hour-label" style="height:90px;">7 PM</div>
+            </div>
+            <div class="cal-days-grid" id="cal-days-grid">
+              <!-- 7 day columns populated by JS, with events -->
+            </div>
+          </div>
+        </div>
+
+        <div class="cal-popup-close" id="cal-popup-close" onclick="closeEventPopup()"></div>
+        <div class="cal-popup" id="cal-popup"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contact profile overlay (Peyton Alexander) -->
+<div class="overlay" id="contact-profile-overlay" onclick="closeOnBackdrop(event, 'contact-profile-overlay')">
+  <div class="profile-card">
+    <button class="profile-close" onclick="closeOverlay('contact-profile-overlay')">✕</button>
+    <div class="profile-top">
+      <div class="profile-avatar-lg">
+        PA
+        <div class="status-dot"></div>
+      </div>
+      <div>
+        <div class="profile-name">Alexander, Peyton</div>
+        <div class="profile-role">Student</div>
+        <div class="profile-icon-row">
+          <span title="Chat">💬</span>
+          <span title="Org chart">🔗</span>
+          <span title="Video call">📹</span>
+          <span title="Call">📞</span>
+          <span title="LinkedIn">in</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-tabs">
+      <div class="ptab active" data-tab="overview" onclick="switchContactTab('overview')">Overview</div>
+      <div class="ptab" data-tab="profile" onclick="switchContactTab('profile')">Profile</div>
+      <div class="ptab" data-tab="organization" onclick="switchContactTab('organization')">Organization</div>
+      <div class="ptab" data-tab="linkedin" onclick="switchContactTab('linkedin')">LinkedIn</div>
+      <div class="ptab" data-tab="swell" onclick="switchContactTab('swell')">Swell</div>
+    </div>
+
+    <div class="ptab-content active" id="contacttab-overview">
+      <div class="quick-msg">
+        <input type="text" placeholder="Send a quick message" id="quick-msg-input" onkeydown="if(event.key==='Enter'){quickSend();}">
+        <button onclick="quickSend()">➤</button>
+      </div>
+
+      <div class="status-box">
+        <div class="line">
+          <div class="dot-x">✕</div>
+          <div>
+            <div style="font-weight:600;">Offline · Free all day</div>
+            <div style="color:#c8c6c4; font-size:13px;">Work hours: 11:00 AM – 8:00 PM</div>
+          </div>
+        </div>
+        <div class="line">
+          <div>🕒</div>
+          <div>4:30 PM · Their time zone is 3 hours ahead of yours</div>
+        </div>
+      </div>
+
+      <div class="section-title">Contact information</div>
+      <div class="contact-grid">
+        <div>
+          <div class="label">Email</div>
+          <div class="value">peyton.alexander@example.edu</div>
+        </div>
+        <div>
+          <div class="label">Chat</div>
+          <div class="value">pralex01@example.edu</div>
+        </div>
+        <div>
+          <div class="label">Job title</div>
+          <div class="value plain">Student</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ptab-content" id="contacttab-profile">
+      <div class="quiz-intro">Basic profile details would show up here — bio, pronouns, and preferred name.</div>
+    </div>
+
+    <div class="ptab-content" id="contacttab-organization">
+      <div class="quiz-intro">Reporting lines and team structure would show up here.</div>
+    </div>
+
+    <div class="ptab-content" id="contacttab-linkedin">
+      <div class="quiz-intro">Matched LinkedIn profile info would show up here.</div>
+    </div>
+
+    <div class="ptab-content" id="contacttab-swell">
+      <div class="quiz-intro">Swell's quick personality read, based on how he shows up at work.</div>
+      <div class="quiz-result">
+        <div class="type-code">ENFP-T</div>
+        <div class="type-name">The Campaigner</div>
+        <div class="type-blurb">Based on how he shows up in meetings and on the marketing thread, Peyton tests as an ENFP-T (Campaigner) — outgoing, quick with ideas, and good at getting a room excited about a launch. The trade-off: follow-through and fine print sometimes need a nudge, so a quick recap message after a call tends to land well with him.</div>
+        <button class="quiz-retake" onclick="askSwellAboutPeyton()">Ask Swell</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- My profile overlay (Quyen Tran) -->
+<div class="overlay" id="my-profile-overlay" onclick="closeOnBackdrop(event, 'my-profile-overlay')">
+  <div class="profile-card">
+    <button class="profile-close" onclick="closeOverlay('my-profile-overlay')">✕</button>
+    <div class="profile-top">
+      <div class="profile-avatar-lg" style="background:#7a4fa0; color:white;">
+        QT
+        <div class="status-dot" style="background:#6bb700;"></div>
+      </div>
+      <div>
+        <div class="profile-name">Tran, Quyen</div>
+        <div class="profile-role">You</div>
+        <div class="profile-icon-row">
+          <span title="Edit profile">✎</span>
+          <span title="Org chart">🔗</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="profile-tabs">
+      <div class="ptab active" data-tab="overview" onclick="switchMyTab('overview')">Overview</div>
+      <div class="ptab" data-tab="profile" onclick="switchMyTab('profile')">Profile</div>
+      <div class="ptab" data-tab="organization" onclick="switchMyTab('organization')">Organization</div>
+      <div class="ptab" data-tab="linkedin" onclick="switchMyTab('linkedin')">LinkedIn</div>
+      <div class="ptab" data-tab="swell" onclick="switchMyTab('swell')">Swell</div>
+    </div>
+
+    <!-- Overview -->
+    <div class="ptab-content active" id="mytab-overview">
+      <div class="status-box" style="margin-top:20px;">
+        <div class="line">
+          <div class="dot-x" style="border-color:#6bb700; color:#6bb700;">●</div>
+          <div>
+            <div style="font-weight:600;">Available</div>
+            <div style="color:#c8c6c4; font-size:13px;">Work hours: 9:00 AM – 5:00 PM</div>
+          </div>
+        </div>
+      </div>
+      <div class="section-title">Contact information</div>
+      <div class="contact-grid">
+        <div>
+          <div class="label">Email</div>
+          <div class="value">quyen.tran@example.com</div>
+        </div>
+        <div>
+          <div class="label">Chat</div>
+          <div class="value">qtran@example.com</div>
+        </div>
+        <div>
+          <div class="label">Job title</div>
+          <div class="value plain">Team member</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile -->
+    <div class="ptab-content" id="mytab-profile">
+      <div class="quiz-intro">Basic profile details would show up here — bio, pronouns, and preferred name.</div>
+    </div>
+
+    <!-- Organization -->
+    <div class="ptab-content" id="mytab-organization">
+      <div class="quiz-intro">Reporting lines and team structure would show up here.</div>
+    </div>
+
+    <!-- LinkedIn -->
+    <div class="ptab-content" id="mytab-linkedin">
+      <div class="quiz-intro">Matched LinkedIn profile info would show up here.</div>
+    </div>
+
+    <!-- Swell (personality quiz) -->
+    <div class="ptab-content" id="mytab-swell">
+      <div class="quiz-intro">Swell's quick personality check — answer 2 questions and we'll match you to one of the 16 personality types.</div>
+
+      <div id="quiz-form">
+        <div class="quiz-question">
+          <div class="q-text">1. When you're deep in a big project, you tend to...</div>
+          <label class="quiz-option" data-q="1" data-val="E">
+            <input type="radio" name="q1" value="E"> Bounce ideas off others and think out loud
+          </label>
+          <label class="quiz-option" data-q="1" data-val="I">
+            <input type="radio" name="q1" value="I"> Retreat and work through it on your own first
+          </label>
+        </div>
+
+        <div class="quiz-question">
+          <div class="q-text">2. When solving a problem, you lean more on...</div>
+          <label class="quiz-option" data-q="2" data-val="T">
+            <input type="radio" name="q2" value="T"> Data, logic, and what's most objectively efficient
+          </label>
+          <label class="quiz-option" data-q="2" data-val="F">
+            <input type="radio" name="q2" value="F"> How it'll land with the people affected by it
+          </label>
+        </div>
+
+        <button class="quiz-save-btn" id="quiz-save-btn" onclick="saveQuiz()" disabled>Save</button>
+      </div>
+
+      <div id="quiz-result-box"></div>
+      <div id="goal-panel-box"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SWELL_LOGO = "data:image/png;base64,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";
+
+// ---------- Made-up "16 Personalities" read for Peyton (fictional, for demo purposes) ----------
+const PEYTON_TYPE_CODE = "ENFP-T";
+const PEYTON_TYPE_NAME = "The Campaigner";
+const PEYTON_BLURB = "Based on how they show up in meetings and on the marketing thread, Peyton tests as an ENFP-T (Campaigner) — outgoing, quick with ideas, and good at getting a room excited about a launch. The trade-off: follow-through and fine print sometimes need a nudge, so a quick recap message after a call tends to land well with them.";
+
+// ---------- Conversations ----------
+const conversations = {
+  swell: {
+    name: "Swell",
+    sub: "Workplace assistant · Always on",
+    avatarType: "image",
+    avatarSrc: SWELL_LOGO,
+    online: true,
+    messages: [
+      { mine:false, text:"Hi Quyen! I'm Swell 👋 Ask me things like \"how do I reach Peyton Alexander?\" or \"what's Peyton's personality type?\" and I'll help out." }
+    ]
+  },
+  peyton: {
+    name: "Peyton Alexander",
+    sub: "Student · Offline",
+    avatarType: "initials",
+    initials: "PA",
+    color: "#8b8a5c",
+    online: false,
+    messages: [
+      { mine:false, text:"Let's make sure that our marketing material for the upcoming launch is all accounted for! I'm going to be setting up some time with the stakeholders to make sure we're all on the same page, if you could reply with a quick update on your area, that'd be much appreciated.", time:"10:15 AM" },
+      { mine:true, text:"Thanks for kicking this off! From the PMM side, the one-pager is in final review and should be ready by end of day. I'm also working with Sales Enablement on a short deck they can use with prospects. Messaging is aligned with what we shared during the all-hands, but I'll do one final round of edits after today's stakeholder sync.", time:"11:41 AM" }
+    ]
+  },
+  marie: {
+    name: "Marie Beaudouin",
+    sub: "Offline",
+    avatarType: "initials",
+    initials: "MB",
+    color: "#c07830",
+    online: false,
+    messages: [
+      { mine:false, text:"Sounds good, see you then!", time:"Tue" }
+    ]
+  },
+  babak: {
+    name: "Babak Shammas",
+    sub: "Online",
+    avatarType: "initials",
+    initials: "BS",
+    color: "#4a6fa5",
+    online: true,
+    messages: [
+      { mine:false, text:"Sent the invoice over", time:"Mon" }
+    ]
+  }
+};
+
+const threadOrder = ["swell", "peyton", "marie", "babak"];
+let currentThread = "peyton";
+
+function avatarStyle(conv){
+  if(conv.avatarType === "image"){
+    return `background-image:url('${conv.avatarSrc}'); background-color:white;`;
+  }
+  return `background:${conv.color};`;
+}
+function avatarContent(conv){
+  return conv.avatarType === "image" ? "" : conv.initials;
+}
+
+function renderThreadList(){
+  const list = document.getElementById('thread-list');
+  list.innerHTML = "";
+  threadOrder.forEach(id => {
+    const conv = conversations[id];
+    const last = conv.messages[conv.messages.length - 1];
+    const div = document.createElement('div');
+    div.className = 'thread' + (id === currentThread ? ' selected' : '');
+    div.onclick = () => selectThread(id);
+    div.innerHTML = `
+      <div class="avatar" style="${avatarStyle(conv)}">
+        ${avatarContent(conv)}
+        <div class="status ${conv.online ? 'online' : 'offline'}"></div>
+      </div>
+      <div class="thread-info">
+        <div class="thread-top">
+          <div class="thread-name">${conv.name}</div>
+          <div class="thread-time">${last.time || 'now'}</div>
+        </div>
+        <div class="thread-preview">${(last.mine ? 'You: ' : '') + last.text}</div>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+function renderConversation(){
+  const conv = conversations[currentThread];
+  document.getElementById('conv-avatar').style.cssText = avatarStyle(conv);
+  document.getElementById('conv-avatar').textContent = avatarContent(conv);
+  document.getElementById('conv-title').textContent = conv.name;
+  document.getElementById('conv-sub').textContent = conv.sub;
+
+  const messages = document.getElementById('messages');
+  messages.innerHTML = '<div class="day-divider">Today</div>';
+  conv.messages.forEach(m => appendMessageDOM(messages, conv, m));
+  messages.scrollTop = messages.scrollHeight;
+  document.getElementById('typing').textContent = '';
+}
+
+function selectThread(id){
+  currentThread = id;
+  renderThreadList();
+  renderConversation();
+}
+
+function appendMessageDOM(container, conv, m){
+  const row = document.createElement('div');
+  row.className = 'msg-row' + (m.mine ? ' me' : '');
+  const time = m.time || formatTime();
+
+  if(!m.mine){
+    row.innerHTML = `
+      <div class="avatar" style="${avatarStyle(conv)}" onclick="openContactProfile()">${avatarContent(conv)}</div>
+      <div class="msg-body">
+        <div class="msg-meta"><span class="name" onclick="openContactProfile()">${conv.name}</span><span class="time">${time}</span></div>
+        <div class="bubble"></div>
+      </div>`;
+  } else {
+    row.innerHTML = `
+      <div class="msg-body">
+        <div class="msg-meta"><span class="time">${time}</span></div>
+        <div class="bubble"></div>
+      </div>`;
+  }
+  row.querySelector('.bubble').textContent = m.text;
+  container.appendChild(row);
+}
+
+function formatTime(){
+  const now = new Date();
+  let h = now.getHours();
+  const m = now.getMinutes().toString().padStart(2,'0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12; if(h===0) h = 12;
+  return `${h}:${m} ${ampm}`;
+}
+
+// ---------- Reply logic ----------
+const peytonReplies = [
+  "Got it, thanks for the update!",
+  "That works for me — I'll loop in the rest of the team.",
+  "Appreciate the quick turnaround on this.",
+  "Sounds good, let's sync tomorrow to finalize.",
+  "Perfect, that's exactly what I needed to hear.",
+  "Great, I'll pass this along to the stakeholders."
+];
+
+function swellReply(text){
+  const t = text.toLowerCase();
+  const asksAboutPeyton = t.includes('peyton') || t.includes('alexander');
+  const asksHowToTalk = t.includes('talk') || t.includes('reach') || t.includes('contact') || t.includes('message') || t.includes('chat with');
+  const asksPersonality = t.includes('personality') || t.includes('16 personalities') || t.includes('type');
+  const asksAboutGoal = t.includes('goal') || t.includes('deeper') || t.includes('more advice');
+
+  if(asksAboutPeyton && (asksHowToTalk || !asksPersonality)){
+    return `You can reach Peyton Alexander directly — click their name in your chat list on the left, or search "Peyton" in the top search bar to start a new chat.\n\nA little context before you message them: Peyton tests as an ${PEYTON_TYPE_CODE} (${PEYTON_TYPE_NAME}). ${PEYTON_BLURB}`;
+  }
+  if(asksAboutPeyton && asksPersonality){
+    return `Peyton Alexander tests as an ${PEYTON_TYPE_CODE} (${PEYTON_TYPE_NAME}). ${PEYTON_BLURB}`;
+  }
+  if(asksAboutGoal && goalState && goalState.goal && savedTypeCode){
+    return goalDeeperAdvice(savedTypeCode, goalState.goal);
+  }
+  if(t.includes('hi') || t.includes('hello') || t.includes('hey')){
+    return "Hey there! I'm Swell, your workplace assistant. Ask me how to reach a teammate, or check the \"Swell\" tab on your own profile for a quick personality match.";
+  }
+  return "I'm Swell — I can help you find a teammate or figure out the best way to reach them. Try asking something like \"how do I talk to Peyton Alexander?\"";
+}
+
+function sendMessage(){
+  const input = document.getElementById('composer-input');
+  const text = input.value.trim();
+  if(!text) return;
+  const conv = conversations[currentThread];
+  const messages = document.getElementById('messages');
+
+  const mineMsg = { mine:true, text, time: formatTime() };
+  conv.messages.push(mineMsg);
+  appendMessageDOM(messages, conv, mineMsg);
+  input.value = '';
+  messages.scrollTop = messages.scrollHeight;
+  renderThreadList();
+
+  const typing = document.getElementById('typing');
+  typing.textContent = conv.name + ' is typing...';
+
+  setTimeout(() => {
+    typing.textContent = '';
+    let replyText;
+    if(currentThread === 'swell'){
+      replyText = swellReply(text);
+    } else if(currentThread === 'peyton'){
+      replyText = peytonReplies[Math.floor(Math.random()*peytonReplies.length)];
+    } else {
+      replyText = "Thanks, got your message!";
+    }
+    const replyMsg = { mine:false, text: replyText, time: formatTime() };
+    conv.messages.push(replyMsg);
+    appendMessageDOM(messages, conv, replyMsg);
+    messages.scrollTop = messages.scrollHeight;
+    renderThreadList();
+  }, 900 + Math.random()*900);
+}
+
+document.getElementById('composer-input').addEventListener('keydown', function(e){
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+
+// ---------- Overlays ----------
+function closeOverlay(id){ document.getElementById(id).classList.remove('show'); }
+function closeOnBackdrop(e, id){ if(e.target.id === id) closeOverlay(id); }
+
+function openContactProfile(){
+  document.getElementById('contact-profile-overlay').classList.add('show');
+}
+function openMyProfile(){
+  document.getElementById('my-profile-overlay').classList.add('show');
+}
+
+function switchContactTab(tab){
+  document.querySelectorAll('#contact-profile-overlay .ptab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('#contact-profile-overlay .ptab-content').forEach(el => {
+    el.classList.toggle('active', el.id === 'contacttab-' + tab);
+  });
+}
+
+function askSwellAboutPeyton(){
+  closeOverlay('contact-profile-overlay');
+  selectThread('swell');
+  document.getElementById('composer-input').value = "What's Peyton Alexander's personality type?";
+  sendMessage();
+}
+
+function quickSend(){
+  const qi = document.getElementById('quick-msg-input');
+  const text = qi.value.trim();
+  if(!text) return;
+  qi.value = '';
+  closeOverlay('contact-profile-overlay');
+  selectThread('peyton');
+  document.getElementById('composer-input').value = text;
+  sendMessage();
+}
+
+// ---------- My-profile tabs ----------
+function switchMyTab(tab){
+  document.querySelectorAll('#my-profile-overlay .ptab').forEach(el => {
+    el.classList.toggle('active', el.dataset.tab === tab);
+  });
+  document.querySelectorAll('#my-profile-overlay .ptab-content').forEach(el => {
+    el.classList.toggle('active', el.id === 'mytab-' + tab);
+  });
+}
+
+// ---------- Personality quiz ----------
+const quizAnswers = { q1: null, q2: null };
+
+document.querySelectorAll('.quiz-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    const q = opt.dataset.q;
+    const val = opt.dataset.val;
+    quizAnswers['q' + q] = val;
+    opt.querySelector('input').checked = true;
+    document.querySelectorAll(`.quiz-option[data-q="${q}"]`).forEach(o => o.classList.toggle('selected', o === opt));
+    document.getElementById('quiz-save-btn').disabled = !(quizAnswers.q1 && quizAnswers.q2);
+  });
+});
+
+const TYPE_LIBRARY = {
+  "ENTJ": { name:"The Commander", blurb:"Decisive and strategic — you tend to spot the most efficient path forward and rally people behind it. You do best when given ownership of a real problem, and can work on leaving room for others to weigh in before the plan is locked." },
+  "ENFJ": { name:"The Protagonist", blurb:"Warm and persuasive — you naturally read the room and bring people together around a shared goal. Your challenge is remembering to protect your own energy while you're busy looking after everyone else's." },
+  "INTJ": { name:"The Architect", blurb:"Independent and analytical — you like working through a problem fully before committing to a plan, and you trust logic over consensus. Bringing others into your thinking earlier can make the eventual plan land better." },
+  "INFJ": { name:"The Advocate", blurb:"Thoughtful and quietly driven — you care about how decisions affect people, and you prefer to think things through on your own before sharing a fully-formed view. Saying the half-formed version out loud sooner can save you some solo effort." }
+};
+
+function computeType(){
+  const ei = quizAnswers.q1; // E or I
+  const tf = quizAnswers.q2; // T or F
+  // Fixed N/J for this short 2-question version
+  return ei + "N" + tf + "J";
+}
+
+function saveQuiz(){
+  if(!quizAnswers.q1 || !quizAnswers.q2) return;
+  const code = computeType();
+  savedTypeCode = code;
+  const info = TYPE_LIBRARY[code];
+  document.getElementById('quiz-form').style.display = 'none';
+  document.getElementById('quiz-result-box').innerHTML = `
+    <div class="quiz-result">
+      <div class="type-code">${code}</div>
+      <div class="type-name">${info.name}</div>
+      <div class="type-blurb">${info.blurb}</div>
+      <div class="btn-row">
+        <button class="quiz-retake" onclick="retakeQuiz()">Retake quiz</button>
+        <button class="goal-set-btn" onclick="openGoalPanel()">Set goals</button>
+      </div>
+    </div>`;
+}
+
+function retakeQuiz(){
+  quizAnswers.q1 = null; quizAnswers.q2 = null;
+  savedTypeCode = null;
+  document.querySelectorAll('.quiz-option').forEach(o => { o.classList.remove('selected'); o.querySelector('input').checked = false; });
+  document.getElementById('quiz-save-btn').disabled = true;
+  document.getElementById('quiz-form').style.display = 'block';
+  document.getElementById('quiz-result-box').innerHTML = '';
+  document.getElementById('goal-panel-box').innerHTML = '';
+  goalState = { goal:null };
+}
+
+// ---------- Goal-setting assistant (personal profile only) ----------
+let savedTypeCode = null;
+let goalState = { goal: null };
+
+const TYPE_TRAITS = {
+  "ENTJ": { strength:"decisive and naturally good at turning a fuzzy goal into a plan", watchout:"can treat everything like a project — remember some steps here are meant to feel unstructured, not efficient" },
+  "ENFJ": { strength:"already tuned in to people and quick to make others feel comfortable", watchout:"tends to give a lot without opening up in return — the growth edge is sharing something back, not just asking" },
+  "INTJ": { strength:"an independent thinker who's great at designing a system once you commit to it", watchout:"defaults to solo work, so this goal will need deliberate, scheduled reps rather than waiting for it to feel natural" },
+  "INFJ": { strength:"empathetic and reflective, and probably already has a couple of close bonds", watchout:"prefers depth over breadth, so the edge is showing up in lower-stakes, less-close settings before you feel fully ready" }
+};
+
+function goalIntro(code){
+  const t = TYPE_TRAITS[code];
+  return `Given your ${code} profile — ${t.strength} — here's how I'd break this down:`;
+}
+
+function goalBreakdown(code, goalText){
+  const t = TYPE_TRAITS[code];
+  const lower = goalText.toLowerCase();
+  const isConnectionGoal = lower.includes('closer') || lower.includes('connect') || lower.includes('relationship') || lower.includes('friend') || lower.includes('bond');
+
+  if(isConnectionGoal){
+    const steps = {
+      "ENTJ": "1. Pick one coworker a week and put 15 minutes on the calendar with no agenda — treat it like any other commitment so it actually happens.\n2. Before diving into work talk, ask one non-work question and let the conversation sit there for a minute.\n3. After meetings, stay an extra 2 minutes for small talk instead of jumping to the next thing.",
+      "ENFJ": "1. In your next few 1:1s, share something real about your own week before asking about theirs — right now you likely default to asking first.\n2. Notice when you're about to jump in with advice, and try just listening one beat longer instead.\n3. Say yes to one optional, low-stakes team hangout this week.",
+      "INTJ": "1. Set up one recurring, low-effort ritual — like walking to lunch with the same person weekly — so connection doesn't rely on remembering to do it.\n2. Treat small talk as data-gathering rather than a distraction; ask one curiosity question per conversation.\n3. Give yourself permission for it to feel inefficient at first — that's normal, not a sign it's not working.",
+      "INFJ": "1. Pick one lower-stakes group setting (a team channel, an optional coffee chat) and be the first to speak up this week, even briefly.\n2. Keep investing in your one or two close work bonds, but stretch to a new person once every couple of weeks.\n3. Notice the urge to wait until you feel \"ready\" to reach out — send the message before that feeling shows up."
+    };
+    return `${goalIntro(code)}\n\n${steps[code]}\n\nWatch-out: ${t.watchout}`;
+  }
+
+  return `${goalIntro(code)}\n\n1. Turn "${goalText}" into one small, concrete action you can take this week.\n2. Pick a specific day/time to actually do it, rather than leaving it open-ended.\n3. Decide up front how you'll notice progress — a message, a feeling, a specific outcome.\n\nWatch-out: ${t.watchout}`;
+}
+
+function goalDeeperAdvice(code, goalText){
+  const lower = goalText.toLowerCase();
+  const isConnectionGoal = lower.includes('closer') || lower.includes('connect') || lower.includes('relationship') || lower.includes('friend') || lower.includes('bond');
+
+  if(isConnectionGoal){
+    const deeper = {
+      "ENTJ": "Since structure already works for you, add a recurring 15-minute \"no-agenda\" block twice a month with someone outside your immediate team. Afterward, jot down one line about what you learned about them — treat it as a light experiment, not a task to close out.",
+      "ENFJ": "Try asking one person a question you genuinely don't know the answer to, and resist the urge to offer a solution afterward. Let the conversation be about them, not about you helping them.",
+      "INTJ": "Give yourself a genuinely low-stakes practice rep: a two-minute hallway chat with someone you don't usually talk to, with no goal beyond doing it. The habit matters more than the content right now.",
+      "INFJ": "Pick one group setting a month where you speak up first, even with something small. The anxiety around it tends to fade faster than expected once you've done it a couple of times."
+    };
+    return `Going deeper on "${goalText}" as an ${code}:\n\n${deeper[code]}\n\nWant to keep going? Tell me how it's landed so far and I can help you adjust.`;
+  }
+
+  return `Going deeper on "${goalText}" as an ${code}: the biggest lever is usually consistency over intensity. Pick the smallest version of this goal you can repeat weekly, and build from there rather than aiming for one big push.\n\nWant to keep going? Tell me how it's landed so far and I can help you adjust.`;
+}
+
+function openGoalPanel(isEdit){
+  const box = document.getElementById('goal-panel-box');
+  goalState = { goal:null };
+  box.innerHTML = `
+    <div class="goal-breakdown">
+      ${isEdit ? '<div class="goal-edit-link" onclick="document.getElementById(\'goal-panel-box\').innerHTML=\'\'">✕ cancel</div><br>' : ''}
+      What's a goal you're working on? I'll break it down based on your ${savedTypeCode || 'personality'} type.
+      <div class="goal-input-row">
+        <input type="text" id="goal-input" placeholder="e.g. get closer to people at work" onkeydown="if(event.key==='Enter'){submitGoal();}">
+        <button onclick="submitGoal()">Get my plan</button>
+      </div>
+    </div>`;
+  document.getElementById('goal-input').focus();
+}
+
+function submitGoal(){
+  const input = document.getElementById('goal-input');
+  const text = input.value.trim();
+  if(!text) return;
+  goalState.goal = text;
+  const breakdown = goalBreakdown(savedTypeCode, text);
+  renderGoalPanel(breakdown);
+}
+
+function renderGoalPanel(breakdown){
+  const box = document.getElementById('goal-panel-box');
+  box.innerHTML = `
+    <div class="goal-breakdown">
+      <div style="font-weight:600; margin-bottom:6px;">Goal: ${goalState.goal}</div>
+      ${breakdown}
+      <div class="btn-row">
+        <button class="quiz-retake" onclick="openGoalPanel(true)">Edit goal</button>
+        <button class="goal-set-btn" onclick="goDeeperWithSwell()">Go deeper</button>
+      </div>
+    </div>`;
+}
+
+function goDeeperWithSwell(){
+  closeOverlay('my-profile-overlay');
+  selectThread('swell');
+  document.getElementById('composer-input').value = `Can you go deeper on advice for my goal to ${goalState.goal}?`;
+  sendMessage();
+}
+
+// ---------- View switching (Chat / Calendar) ----------
+function selectRailView(view){
+  document.querySelectorAll('.rail-item[data-view]').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === view);
+  });
+  document.getElementById('view-chat').style.display = view === 'chat' ? 'flex' : 'none';
+  document.getElementById('view-calendar').style.display = view === 'calendar' ? 'flex' : 'none';
+}
+
+// ---------- Calendar ----------
+const HOURS = ["11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM","6 PM","7 PM"];
+const HOUR_HEIGHT = 90;
+const CAL_DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+const calendarEvents = [
+  {
+    id: "nulu-run",
+    source: "swell",
+    dayIndex: 1, // Monday
+    title: "Nulu Run Club",
+    dateLabel: "Mon 9/7/26",
+    startLabel: "3:00 PM",
+    endLabel: "3:30 PM",
+    startHourFromGridTop: 4, // 3 PM is the 5th row (index 4) since grid starts at 11 AM
+    durationHours: 0.5,
+    location: "750 E Jefferson St",
+    description: "Running group meeting at 750 E Jefferson St. Runners at all levels are welcome.",
+    orgAttendeeCount: 12,
+    orgName: "Van Arsdal"
+  }
+];
+
+let swellEventsOn = true;
+
+function renderCalendarGrid(){
+  const grid = document.getElementById('cal-days-grid');
+  grid.innerHTML = '';
+  for(let d = 0; d < 7; d++){
+    const col = document.createElement('div');
+    col.className = 'cal-day-col';
+    calendarEvents.forEach(ev => {
+      if(ev.dayIndex !== d) return;
+      const top = ev.startHourFromGridTop * HOUR_HEIGHT + 2;
+      const height = Math.max(ev.durationHours * HOUR_HEIGHT - 4, 22);
+      const evEl = document.createElement('div');
+      evEl.className = 'cal-event' + (ev.source === 'swell' && !swellEventsOn ? ' hidden' : '');
+      evEl.dataset.source = ev.source;
+      evEl.dataset.eventId = ev.id;
+      evEl.style.top = top + 'px';
+      evEl.style.height = height + 'px';
+      evEl.innerHTML = `<span class="icn">▭</span><span class="ev-title">${ev.title}</span><span class="attendee-badge">👥 ${ev.orgAttendeeCount}</span>`;
+      evEl.onclick = (e) => openEventPopup(e.currentTarget, ev);
+      col.appendChild(evEl);
+    });
+    grid.appendChild(col);
+  }
+}
+
+function openEventPopup(eventEl, ev){
+  const popup = document.getElementById('cal-popup');
+  const closer = document.getElementById('cal-popup-close');
+  const mainRect = document.getElementById('cal-main').getBoundingClientRect();
+  const rect = eventEl.getBoundingClientRect();
+
+  popup.innerHTML = `
+    <div class="cal-popup-header">
+      <div class="cal-popup-title">▭ ${ev.title}</div>
+      <div class="cal-popup-expand">⤢</div>
+    </div>
+    <div class="cal-popup-row"><div class="ic">🕒</div><div>${ev.dateLabel} ${ev.startLabel} - ${ev.endLabel}</div></div>
+    <div class="cal-popup-row"><div class="ic">📍</div><div>${ev.location}</div></div>
+    <div class="cal-popup-row"><div class="ic">📋</div><div>${ev.description}</div></div>
+    <div class="cal-popup-row cal-popup-attendees"><div class="ic">👥</div><div><span class="count">${ev.orgAttendeeCount} employees</span> from ${ev.orgName} are going</div></div>
+  `;
+
+  let top = rect.top - mainRect.top + rect.height + 8;
+  let left = rect.left - mainRect.left;
+  if(left + 320 > mainRect.width) left = Math.max(mainRect.width - 336, 8);
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+
+  popup.classList.add('show');
+  closer.classList.add('show');
+}
+
+function closeEventPopup(){
+  document.getElementById('cal-popup').classList.remove('show');
+  document.getElementById('cal-popup-close').classList.remove('show');
+}
+
+function toggleSwellEvents(){
+  swellEventsOn = !swellEventsOn;
+  document.getElementById('swell-toggle').classList.toggle('on', swellEventsOn);
+  document.querySelectorAll('.cal-event[data-source="swell"]').forEach(el => {
+    el.classList.toggle('hidden', !swellEventsOn);
+  });
+  if(!swellEventsOn) closeEventPopup();
+}
+
+// ---------- Init ----------
+renderThreadList();
+renderConversation();
+renderCalendarGrid();
+document.getElementById('swell-mini-logo').style.backgroundImage = `url('${SWELL_LOGO}')`;
+</script>
+
+</body>
+</html>
